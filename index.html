@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Key Validator</title>
+  <title>Key Access System</title>
   <style>
     body {
-      font-family: sans-serif;
-      padding: 30px;
+      font-family: Arial, sans-serif;
       background: #ffffff;
-      color: #333;
+      color: #222;
       text-align: center;
+      padding: 30px;
     }
     input, button {
       padding: 10px;
@@ -17,18 +17,41 @@
       width: 80%;
       margin: 10px 0;
     }
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
+    #status { margin-top: 20px; font-weight: bold; }
+    #adminBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    #adminPanel {
+      display: none;
+      margin-top: 30px;
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+    }
+    textarea {
+      width: 90%;
+      height: 100px;
     }
   </style>
 </head>
 <body>
-
-  <h2>🔐 Access Panel</h2>
-  <input type="text" id="keyInput" placeholder="Enter your access key" />
-  <button onclick="checkKey()">Validate Key</button>
+  <h2>🔐 Key Login</h2>
+  <input type="text" id="keyInput" placeholder="Enter your key" />
+  <button onclick="checkKey()">Login</button>
   <div id="status"></div>
+
+  <div id="adminBtn" onclick="askAdmin()">⚙️</div>
+
+  <div id="adminPanel">
+    <h3>Admin Panel</h3>
+    <input type="text" id="adminUsername" placeholder="Username" />
+    <input type="number" id="expiryDays" placeholder="Expiry (days)" />
+    <button onclick="generateKey()">Generate Key</button>
+    <textarea id="output" readonly placeholder="Generated key JSON will appear here..."></textarea>
+  </div>
 
   <script>
     async function checkKey() {
@@ -38,28 +61,48 @@
       try {
         const res = await fetch("https://yourgithubusername.github.io/keydb/keys.json?bust=" + Date.now());
         const keys = await res.json();
-
-        if (keys.hasOwnProperty(key)) {
-          const expiry = keys[key].expiry;
-          const username = keys[key].username;
+        if (keys[key]) {
+          const { username, expiry } = keys[key];
           if (Date.now() < expiry) {
-            status.style.color = "green";
-            status.textContent = `✅ Access Granted. Welcome, ${username}!`;
-            // Here you can redirect or show protected content
+            status.style.color = 'green';
+            status.textContent = `✅ Access granted. Welcome, ${username}`;
           } else {
-            status.style.color = "red";
+            status.style.color = 'red';
             status.textContent = "❌ Key expired.";
           }
         } else {
-          status.style.color = "red";
+          status.style.color = 'red';
           status.textContent = "❌ Invalid key.";
         }
-      } catch (err) {
-        status.style.color = "red";
-        status.textContent = "Error loading key database.";
+      } catch (e) {
+        status.style.color = 'red';
+        status.textContent = "Error fetching key data.";
       }
     }
-  </script>
 
+    function askAdmin() {
+      const pass = prompt("Enter admin key:");
+      if (pass === "RUDRAPAWAR") {
+        document.getElementById('adminPanel').style.display = 'block';
+      } else {
+        alert("❌ Invalid admin key");
+      }
+    }
+
+    function generateKey() {
+      const username = document.getElementById('adminUsername').value.trim();
+      const days = parseInt(document.getElementById('expiryDays').value);
+      if (!username || !days) return alert("Please fill all fields");
+      const key = Math.random().toString(36).substring(2, 10);
+      const expiry = Date.now() + days * 24 * 60 * 60 * 1000;
+      const obj = {
+        [key]: {
+          username: username,
+          expiry: expiry
+        }
+      };
+      document.getElementById('output').value = JSON.stringify(obj, null, 2);
+    }
+  </script>
 </body>
 </html>
